@@ -13,6 +13,12 @@ library(syuzhet)
 library(RColorBrewer)
 library(wordcloud)
 library(tm)
+library(tidytext)
+library(lubridate)
+library(zoo)
+library(scales)
+library(quanteda)
+
 #library("SnowballC")
 ######      DATOS         ##########
 
@@ -35,14 +41,13 @@ mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
     html_nodes("p") %>%
     html_text() %>%
     paste(collapse = " ")
-    } # está función da la direccion
+        } # está función da la direccion
 
 ############ FUNCIÓN PARA NUBE DE FREQUENCIA     #################
 ##  LIMPIEZA
-toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
-remover <- c("presidente", "andrés", "lópez","méxico", "manuel", "obrador", "‘", "entonces", "dos", "tres", "‘n’")
-
 nube_frequencia <- function(mananera) {
+  toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
+  remover <- c("presidente","no","sí", "andrés", "lópez","méxico", "manuel", "obrador", "‘", "entonces", "dos", "tres", "‘n’")
   v <- Corpus(VectorSource(mananera)) %>%
     tm_map(toSpace, "/") %>%
     tm_map(toSpace, "@") %>%
@@ -66,7 +71,111 @@ nube_frequencia <- function(mananera) {
 }
 #############
 # debe de funcionar en dos pasos
-temp <- read_html("https://lopezobrador.org.mx/2022/09/05")
 
-mananera <- mananera("2022/09/07")
+mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
+  temp <- paste("https://lopezobrador.org.mx/", fecha, sep = "") %>% 
+    read_html() %>%
+    html_nodes("a") %>%
+    html_attr("href") %>%
+    grep("version",., value = TRUE) 
+  temp[1] %>% read_html() %>% 
+    html_nodes("p") %>%
+    html_text() %>%
+    paste(collapse = " ")
+} # está función da la direccion
+
+temp <- read_html("https://lopezobrador.org.mx/2022/09/08")
+temp %>% html_nodes("a") %>% html_attr("href")
+
+mananera <- mananera("2022/09/06")
 nube_frequencia(mananera)
+
+############## nuevo análisis de sentimientos de la mañanera   #############
+#descarga del lexico afinn
+#download.file("https://raw.githubusercontent.com/jboscomendoza/rpubs/master/sentimientos_afinn/lexico_afinn.en.es.csv",
+#              "lexico_afinn.en.es.csv")
+afinn <- read.csv("lexico_afinn.en.es.csv", stringsAsFactors = F, fileEncoding = "latin1") %>% 
+  tbl_df()
+
+# añadir fecha 
+# Separar en tokens
+
+mananera_afinn <- 
+  mananera %>%
+  unnest_tokens(input = "text", output = "Palabra") %>%
+  inner_join(afinn, ., by = "Palabra") %>%
+  mutate(Tipo = ifelse(Puntuacion > 0, "Positiva", "Negativa")) %>% 
+  rename("Candidato" = screen_name)  
+
+afinn_mananera <- mananera %>%
+  tibble() %>% # esto nos lo convierte a df, que es el input para unnest_tokens
+  #colnames() %>%
+  unnest_tokens(input = ".", output = "Palabra") %>%
+  inner_join(afinn, . , by = "Palabra") %>%
+  mutate(Tipo = ifelse(Puntuacion > 0, "Positiva", "Negativa"))
+
+afinn_mananera %>% summarise(Puntuacion_mananera = mean(Puntuacion))
+afinn_mananera %>% group_by(Palabra) %>% count(Palabra, sort = T) %>% top_n(n = 10)
+
+
+mananera %>% 
+  tokens() %>% 
+  unnest_tokens()
+
+unnest_tokens(as.table(mananera))
+
+tuits_afinn <- 
+  tuits %>%
+  unnest_tokens(input = "text", output = "Palabra") %>%
+  inner_join(afinn, ., by = "Palabra") %>%
+  mutate(Tipo = ifelse(Puntuacion > 0, "Positiva", "Negativa")) %>% 
+  rename("Candidato" = screen_name)
+
+###########################################################
+######      BAJAR Y GUARDAR MAÑANERAS POR UN MES    #######
+###########################################################
+library(lubridate)
+
+yyyy/mm/dd
+
+#vector con las direcciones de las estenográficas
+#empezamos con agosto
+Nombre_pagina <- "https://lopezobrador.org.mx/"
+fecha <- "2022/07/31"
+#trycatch
+
+for (i in 1:200) {
+  fecha <- ymd(fecha) 
+  dir_pag <- paste(Nombre_pagina,
+          (gsub(x = fecha, pattern = "-", replacement = "/")), sep = "")
+  esteno <- read_html(dir_pag) %>%
+    html_nodes("a") %>%
+    html_attr("href") %>%
+    grep("version",., value = TRUE) %>%
+    unique()
+  write.csv(x = esteno, 
+            file = file.path("Direcciones_Estenografica", paste("direcciones", fecha, sep = "_")))
+  #temp <- temp %>% add_row(tibble_row(fecha = dir_pag,estenografica = esteno[1]))
+  fecha <- as.Date(fecha) +1
+}
+
+file.path("Direcciones_Estenografica", paste("direcciones", fecha, sep = "_"))
+
+temp <- read_html("https://lopezobrador.org.mx/2022/02/05") %>%
+  html_nodes("a") %>%
+  html_attr("href") %>%
+  grep("version",., value = TRUE) %>%
+  unique()
+unique(temp)
+class(temp)
+
+mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
+  temp <- paste("https://lopezobrador.org.mx/", fecha, sep = "") %>% 
+    read_html() %>%
+    html_nodes("a") %>%
+    html_attr("href") %>%
+    grep("version",., value = TRUE) 
+  temp[1] %>% read_html() %>% 
+    html_nodes("p") %>%
+    html_text() %>%
+    paste(collapse = " ")
