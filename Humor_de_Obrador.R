@@ -43,9 +43,10 @@ mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
     paste(collapse = " ")
         } # está función da la direccion
 
-############ FUNCIÓN PARA NUBE DE FREQUENCIA     #################
+############ LIMPIEZA Y ORDEN     #################
+
 ##  LIMPIEZA
-nube_frequencia <- function(mananera) {
+limpieza <- function(mananera) {
   toSpace <- content_transformer(function (x , pattern ) gsub(pattern, " ", x))
   remover <- c("presidente","no","sí", "andrés", "lópez","méxico", "manuel", "obrador", "‘", "entonces", "dos", "tres", "‘n’")
   v <- Corpus(VectorSource(mananera)) %>%
@@ -65,30 +66,19 @@ nube_frequencia <- function(mananera) {
     sort(decreasing = TRUE)
   d<-data.frame(word = names(v), freq = v)
   #set.seed(123)
-  wordcloud(words = d$word, freq = d$freq, min.freq = 1,
-            max.words=200, random.order=FALSE, rot.per=0.35, 
-            colors=brewer.pal(8, "Dark2"))
-}
+  }
+
 #############
+
+
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+
+
 # debe de funcionar en dos pasos
 
-mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
-  temp <- paste("https://lopezobrador.org.mx/", fecha, sep = "") %>% 
-    read_html() %>%
-    html_nodes("a") %>%
-    html_attr("href") %>%
-    grep("version",., value = TRUE) 
-  temp[1] %>% read_html() %>% 
-    html_nodes("p") %>%
-    html_text() %>%
-    paste(collapse = " ")
-} # está función da la direccion
-
-temp <- read_html("https://lopezobrador.org.mx/2022/09/08")
-temp %>% html_nodes("a") %>% html_attr("href")
-
-mananera <- mananera("2022/09/06")
-nube_frequencia(mananera)
 
 ############## nuevo análisis de sentimientos de la mañanera   #############
 #descarga del lexico afinn
@@ -99,25 +89,69 @@ afinn <- read.csv("lexico_afinn.en.es.csv", stringsAsFactors = F, fileEncoding =
 
 # añadir fecha 
 # Separar en tokens
+#[ultima fecha]
+AMLO <- mananera("2022/09/12") %>%  limpieza()
+wordcloud(words = AMLO$word, freq = AMLO$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+head(AMLO)
+length(unique(AMLO$word))
+AMLO
+sum(AMLO$freq)
+temp<- mananera("2022/09/12")
+length(temp[1])
+head(temp)
+library(stringr)
+str_count(temp) # Para contar el número de palabras
+
 
 mananera_afinn <- 
-  mananera %>%
+  AMLO %>%
   unnest_tokens(input = "text", output = "Palabra") %>%
   inner_join(afinn, ., by = "Palabra") %>%
   mutate(Tipo = ifelse(Puntuacion > 0, "Positiva", "Negativa")) %>% 
   rename("Candidato" = screen_name)  
 
-afinn_mananera <- mananera %>%
+afinn_mananera <- AMLO$word %>%
   tibble() %>% # esto nos lo convierte a df, que es el input para unnest_tokens
   #colnames() %>%
   unnest_tokens(input = ".", output = "Palabra") %>%
   inner_join(afinn, . , by = "Palabra") %>%
   mutate(Tipo = ifelse(Puntuacion > 0, "Positiva", "Negativa"))
 
+colnames(AMLO)[1] <- "Palabra"
+
+AMLO_Sentimiento <- unique(inner_join(AMLO, afinn_mananera, by = "Palabra"))
+AMLO_Sentimiento <- AMLO_Sentimiento %>% mutate(Total = Puntuacion * freq)
+
+# Positivo
+temp <- AMLO_Sentimiento %>% filter(Tipo == "Positiva") 
+sum(temp$freq)
+
+wordcloud(words = temp$Palabra, freq = temp$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+# Negativo
+temp <- AMLO_Sentimiento %>% filter(Tipo == "Negativa") 
+sum(temp$freq)
+
+
+
+
+head(AMLO) # word
+head(afinn_mananera) "Palabra"
+
+# Separar en positivo y negativo
+
+
+
 afinn_mananera %>% summarise(Puntuacion_mananera = mean(Puntuacion))
-afinn_mananera %>% group_by(Palabra) %>% count(Palabra, sort = T) %>% top_n(n = 10)
+afinn_mananera %>% group_by(Tipo, Palabra) %>% count(Palabra, sort = T) %>% top_n(n = 10)
 
 
+head(afinn_mananera)
 mananera %>% 
   tokens() %>% 
   unnest_tokens()
@@ -178,4 +212,51 @@ mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
   temp[1] %>% read_html() %>% 
     html_nodes("p") %>%
     html_text() %>%
-    paste(collapse = " ")
+    paste(collapse = " ") }
+
+##############      Leer direcciones de mañanera    ######################
+
+
+
+temp <-read.csv(file = "Direcciones_Estenografica/direcciones_2022-01-06")
+temp[2][1,1]
+
+length(list.files("Direcciones_Estenografica/")) #229
+
+
+unir_text_files()
+
+library(dplyr)
+
+lapply(list.files("Direcciones_Estenografica/"),
+       read.csv())
+
+
+temp <- tibble("a")
+
+temp2
+
+grepl(pattern = "(\\d{3})", x = temp2$x)
+
+for (i in 1:length(list.files("Direcciones_Estenografica/"))) {
+  temp2 <-read.csv(paste("Direcciones_Estenografica/", 
+                 list.files("Direcciones_Estenografica/"), sep = "")[i])
+  temp <- bind_rows(as.tibble(temp2), temp) 
+}
+
+vector <- lapply(X = temp2, FUN = grep, pattern = "(\\-)([0-9]){3}(\\/)()")
+length(temp2$x[vector$x])
+
+
+
+
+class(vector$x)
+class(as.vector(vector))
+
+vector <- lapply(X = as.list(unique(temp$x)), FUN = str_detect, pattern = "*\\d{3}")
+
+install.packages("htmlwidgets")
+library(htmlwidgets)
+quant <- function(rx) str_view_all(".a.aa.aaa", rx)
+
+str_detect()
