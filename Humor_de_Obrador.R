@@ -137,12 +137,6 @@ wordcloud(words = temp$Palabra, freq = temp$freq, min.freq = 1,
 temp <- AMLO_Sentimiento %>% filter(Tipo == "Negativa") 
 sum(temp$freq)
 
-
-
-
-head(AMLO) # word
-head(afinn_mananera) "Palabra"
-
 # Separar en positivo y negativo
 
 
@@ -157,14 +151,6 @@ mananera %>%
   unnest_tokens()
 
 unnest_tokens(as.table(mananera))
-
-tuits_afinn <- 
-  tuits %>%
-  unnest_tokens(input = "text", output = "Palabra") %>%
-  inner_join(afinn, ., by = "Palabra") %>%
-  mutate(Tipo = ifelse(Puntuacion > 0, "Positiva", "Negativa")) %>% 
-  rename("Candidato" = screen_name)
-
 ###########################################################
 ######      BAJAR Y GUARDAR MAÑANERAS POR UN MES    #######
 ###########################################################
@@ -215,48 +201,32 @@ mananera <- function(fecha) {# el input es la fecha, aaaa/mm/dd
     paste(collapse = " ") }
 
 ##############      Leer direcciones de mañanera    ######################
-
-
-
-temp <-read.csv(file = "Direcciones_Estenografica/direcciones_2022-01-06")
-temp[2][1,1]
-
-length(list.files("Direcciones_Estenografica/")) #229
-
-
-unir_text_files()
-
 library(dplyr)
-
-lapply(list.files("Direcciones_Estenografica/"),
-       read.csv())
-
-
 temp <- tibble("a")
-
-temp2
-
 grepl(pattern = "(\\d{3})", x = temp2$x)
-
 for (i in 1:length(list.files("Direcciones_Estenografica/"))) {
   temp2 <-read.csv(paste("Direcciones_Estenografica/", 
                  list.files("Direcciones_Estenografica/"), sep = "")[i])
   temp <- bind_rows(as.tibble(temp2), temp) 
 }
+vector <- lapply(X = temp, FUN = grep, pattern = "(\\-)([0-9]){3}(\\/)()")
+direcciones <- temp[vector$x,]$x
 
-vector <- lapply(X = temp2, FUN = grep, pattern = "(\\-)([0-9]){3}(\\/)()")
-length(temp2$x[vector$x])
+##############    Código para leer y guardar todas las mañaneras
+
+for (i in 1:length(direcciones)) {
+  
+}
 
 
 
 
-class(vector$x)
-class(as.vector(vector))
 
-vector <- lapply(X = as.list(unique(temp$x)), FUN = str_detect, pattern = "*\\d{3}")
 
-install.packages("htmlwidgets")
-library(htmlwidgets)
-quant <- function(rx) str_view_all(".a.aa.aaa", rx)
 
-str_detect()
+
+
+
+
+
+
